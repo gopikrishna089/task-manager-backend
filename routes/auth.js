@@ -17,7 +17,7 @@ router.post("/signup", async (req, res) => {
       name,
       email,
       password: hashedPassword,
-      role
+      role: role || "member"
     });
 
     await user.save();
