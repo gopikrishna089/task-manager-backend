@@ -1,296 +1,336 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Link,
+  useNavigate,
+  Navigate
+} from "react-router-dom";
 import axios from "axios";
 
 const API = "https://task-manager-backend-production-3ff1.up.railway.app/api";
 
 function App() {
-  const [token, setToken] = useState("");
-  const [tasks, setTasks] = useState([]);
-  const [dashboard, setDashboard] = useState(null);
+  return (
+    <BrowserRouter>
+      <Navbar />
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
+        <Route path="/signup" element={<GuestRoute><Signup /></GuestRoute>} />
+        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
 
-  const [email, setEmail] = useState("user@test.com");
-  const [password, setPassword] = useState("123456");
-  const [loading, setLoading] = useState(false);
+export default App;
 
-  // 🔐 LOGIN
-  const login = async () => {
-    try {
-      setLoading(true);
+//////////////////// ROUTE PROTECTION ////////////////////
 
-      const res = await axios.post(`${API}/auth/login`, {
-        email,
-        password
-      });
+function ProtectedRoute({ children }) {
+  return localStorage.getItem("token") ? children : <Navigate to="/login" />;
+}
 
-      console.log("NEW TOKEN:", res.data.token);
+function GuestRoute({ children }) {
+  return !localStorage.getItem("token") ? children : <Navigate to="/dashboard" />;
+}
 
-    setToken(res.data.token);
-    localStorage.setItem("token", res.data.token);
+//////////////////// NAVBAR ////////////////////
 
-    alert("Login success 🚀");
-  } catch (e) {
-    console.log(e.response?.data);
-  }
-};
+function Navbar() {
+  const navigate = useNavigate();
+  const isLoggedIn = !!localStorage.getItem("token");
 
-  // 📋 GET TASKS
-  const getTasks = async () => {
-    if (!token) {
-      alert("Please login first");
-      return;
-    }
-
-    try {
-      const res = await axios.get(`${API}/tasks`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      setTasks(res.data);
-    } catch (err) {
-      console.log("TASK ERROR:", err.response?.data);
-    }
-  };
-
-  // 📊 DASHBOARD
-  const getDashboard = async () => {
-  console.log("TOKEN USED:", token); // 👈 add this
-
-  if (!token) {
-    alert("Login first");
-    return;
-  }
-
-  try {
-    const res = await axios.get(`${API}/tasks/dashboard`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    });
-
-    setDashboard(res.data);
-  } catch (err) {
-    console.log("DASH ERROR:", err.response?.data);
-  }
-};
-
-  // 🔄 UPDATE STATUS
-  const updateStatus = async (id) => {
-    try {
-      await axios.patch(
-        `${API}/tasks/${id}`,
-        { status: "completed" },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      getTasks();
-      getDashboard();
-    } catch (err) {
-      console.log("UPDATE ERROR:", err.response?.data);
-    }
-  };
-
-  // 🎨 STATUS COLORS
-  const statusColor = (status) => {
-    if (status === "completed") return "#00ff9d";
-    if (status === "in-progress") return "#ffd166";
-    return "#ff6b6b";
+  const logout = () => {
+    localStorage.clear();
+    navigate("/");
   };
 
   return (
-    <div style={styles.bg}>
-      <div style={styles.overlay} />
+    <div style={styles.nav}>
+      <h2>⚡ Task Manager</h2>
 
-      <div style={styles.container}>
-        <h1 style={styles.title}>⚡ Team Task Manager</h1>
-
-        {/* LOGIN */}
-        {!token && (
-          <div style={styles.loginCard}>
-            <h3>Login</h3>
-            <input
-              style={styles.input}
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            <input
-              style={styles.input}
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            <button style={styles.primaryBtn} onClick={login}>
-              {loading ? "Loading..." : "Login"}
-            </button>
-          </div>
-        )}
-
-        {/* MAIN APP */}
-        {token && (
+      <div>
+        {!isLoggedIn ? (
           <>
-            <div style={styles.buttonRow}>
-              <button style={styles.primaryBtn} onClick={getTasks}>
-                📋 Tasks
-              </button>
-              <button style={styles.secondaryBtn} onClick={getDashboard}>
-                📊 Dashboard
-              </button>
-            </div>
-
-            {/* DASHBOARD */}
-            {dashboard && (
-              <div style={styles.dashboard}>
-                <Stat label="Total" value={dashboard.total} />
-                <Stat label="Pending" value={dashboard.pending} />
-                <Stat label="Completed" value={dashboard.completed} />
-                <Stat label="Overdue" value={dashboard.overdue} />
-              </div>
-            )}
-
-            {/* TASKS */}
-            <div style={styles.grid}>
-              {tasks.map((t) => (
-                <div key={t._id} style={styles.card}>
-                  <h3>{t.title}</h3>
-                  <p>{t.description}</p>
-
-                  <span
-                    style={{
-                      ...styles.badge,
-                      background: statusColor(t.status)
-                    }}
-                  >
-                    {t.status}
-                  </span>
-
-                  <p style={{ fontSize: "12px", opacity: 0.7 }}>
-                    Due: {new Date(t.dueDate).toLocaleDateString()}
-                  </p>
-
-                  <button
-                    style={styles.smallBtn}
-                    onClick={() => updateStatus(t._id)}
-                  >
-                    ✔ Mark Done
-                  </button>
-                </div>
-              ))}
-            </div>
+            <Link to="/"><button style={styles.navBtn}>Home</button></Link>
+            <Link to="/login"><button style={styles.navBtn}>Login</button></Link>
+            <Link to="/signup"><button style={styles.navBtn}>Signup</button></Link>
           </>
+        ) : (
+          <button style={styles.logoutBtn} onClick={logout}>
+            Logout
+          </button>
         )}
       </div>
     </div>
   );
 }
 
-// 📊 STAT COMPONENT
-const Stat = ({ label, value }) => (
-  <div style={styles.stat}>
-    <h2>{value}</h2>
-    <p>{label}</p>
-  </div>
-);
+//////////////////// HOME ////////////////////
 
-// 🎨 STYLES
+function Home() {
+  return (
+    <div style={styles.hero}>
+      <h1>🚀 Smart Task Manager</h1>
+      <p>Manage your team tasks efficiently and track progress.</p>
+      <Link to="/login">
+        <button style={styles.primaryBtn}>Get Started</button>
+      </Link>
+    </div>
+  );
+}
+
+//////////////////// LOGIN ////////////////////
+
+function Login() {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("user@test.com");
+  const [password, setPassword] = useState("123456");
+
+  const login = async () => {
+    const res = await axios.post(`${API}/auth/login`, { email, password });
+
+    localStorage.setItem("token", res.data.token);
+    localStorage.setItem("name", res.data.user.name);
+
+    navigate("/dashboard");
+  };
+
+  return (
+    <div style={styles.authBg}>
+      <div style={styles.authCard}>
+        <h2>Welcome Back 👋</h2>
+        <input style={styles.input} placeholder="Email" onChange={(e) => setEmail(e.target.value)} />
+        <input style={styles.input} type="password" placeholder="Password" onChange={(e) => setPassword(e.target.value)} />
+        <button style={styles.primaryBtn} onClick={login}>Login</button>
+      </div>
+    </div>
+  );
+}
+
+//////////////////// SIGNUP ////////////////////
+
+function Signup() {
+  const navigate = useNavigate();
+
+  const signup = async (e) => {
+    e.preventDefault();
+    const form = new FormData(e.target);
+
+    await axios.post(`${API}/auth/signup`, {
+      name: form.get("name"),
+      email: form.get("email"),
+      password: form.get("password")
+    });
+
+    alert("Signup successful");
+    navigate("/login");
+  };
+
+  return (
+    <div style={styles.authBg}>
+      <form style={styles.authCard} onSubmit={signup}>
+        <h2>Create Account ✨</h2>
+        <input name="name" style={styles.input} placeholder="Name" />
+        <input name="email" style={styles.input} placeholder="Email" />
+        <input name="password" type="password" style={styles.input} placeholder="Password" />
+        <button style={styles.primaryBtn}>Signup</button>
+      </form>
+    </div>
+  );
+}
+
+//////////////////// DASHBOARD ////////////////////
+
+function Dashboard() {
+  const token = localStorage.getItem("token");
+  const name = localStorage.getItem("name");
+
+  const [tasks, setTasks] = useState([]);
+  const [dashboard, setDashboard] = useState(null);
+  const [view, setView] = useState("dashboard"); // 🔥 important
+
+  const fetchData = async () => {
+    const [tasksRes, dashRes] = await Promise.all([
+      axios.get(`${API}/tasks`, {
+        headers: { Authorization: `Bearer ${token}` }
+      }),
+      axios.get(`${API}/tasks/dashboard`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+    ]);
+
+    setTasks(tasksRes.data);
+    setDashboard(dashRes.data);
+  };
+  function Stat({ label, value }) {
+  return (
+    <div style={styles.statCard}>
+      <h2>{value}</h2>
+      <p>{label}</p>
+    </div>
+  );
+}
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  return (
+    <div style={styles.dashContainer}>
+      <h1>Welcome, {name} 👋</h1>
+
+      {/* 🔥 SWITCH BUTTONS */}
+      <div style={{ marginBottom: "20px" }}>
+        <button
+          style={styles.primaryBtn}
+          onClick={() => setView("dashboard")}
+        >
+          📊 Dashboard
+        </button>
+
+        <button
+          style={styles.secondaryBtn}
+          onClick={() => setView("tasks")}
+        >
+          📋 Tasks
+        </button>
+      </div>
+
+      {/* 🔥 DASHBOARD VIEW */}
+      {view === "dashboard" && dashboard && (
+        <div style={styles.statsGrid}>
+          <Stat label="Total" value={dashboard.total} />
+          <Stat label="Pending" value={dashboard.pending} />
+          <Stat label="Completed" value={dashboard.completed} />
+          <Stat label="Overdue" value={dashboard.overdue} />
+        </div>
+      )}
+
+      {/* 🔥 TASKS VIEW */}
+      {view === "tasks" && (
+        <div style={styles.taskGrid}>
+          {tasks.map((t) => (
+            <div key={t._id} style={styles.taskCard}>
+              <h3>{t.title}</h3>
+              <p>{t.description}</p>
+              <span style={statusStyle(t.status)}>
+                {t.status}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const statusStyle = (status) => ({
+  padding: "5px 10px",
+  borderRadius: "20px",
+  background:
+    status === "completed"
+      ? "#22c55e"
+      : status === "in-progress"
+      ? "#f59e0b"
+      : "#ef4444",
+  color: "#fff"
+});
+
+//////////////////// STYLES ////////////////////
+
 const styles = {
-  bg: {
-    minHeight: "100vh",
-    background: "linear-gradient(135deg, #0f2027, #203a43, #2c5364)"
+  nav: {
+    display: "flex",
+    justifyContent: "space-between",
+    padding: "15px 30px",
+    background: "#111827",
+    color: "#fff"
   },
-  overlay: {
-    position: "absolute",
-    width: "100%",
-    height: "100%",
-    background:
-      "radial-gradient(circle at 20% 20%, rgba(0,255,200,0.15), transparent 40%)"
-  },
-  container: {
-    position: "relative",
-    zIndex: 2,
-    padding: "30px",
+  navBtn: {
+    margin: "5px",
+    padding: "8px 15px",
+    background: "#374151",
     color: "#fff",
-    fontFamily: "Segoe UI"
+    border: "none",
+    borderRadius: "5px"
   },
-  title: {
-    textAlign: "center",
-    marginBottom: "30px"
+  logoutBtn: {
+    margin: "5px",
+    padding: "8px 15px",
+    background: "#ef4444",
+    color: "#fff",
+    border: "none",
+    borderRadius: "5px"
   },
-  loginCard: {
-    maxWidth: "320px",
-    margin: "auto",
-    padding: "25px",
-    borderRadius: "15px",
-    background: "rgba(255,255,255,0.1)",
-    backdropFilter: "blur(10px)",
+  hero: {
+    height: "90vh",
     display: "flex",
     flexDirection: "column",
-    gap: "10px"
+    justifyContent: "center",
+    alignItems: "center",
+    background: "linear-gradient(135deg,#667eea,#764ba2)",
+    color: "#fff"
+  },
+  authBg: {
+    height: "90vh",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    background: "linear-gradient(135deg,#1e3c72,#2a5298)"
+  },
+  authCard: {
+    background: "#fff",
+    padding: "30px",
+    borderRadius: "15px",
+    width: "320px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "10px",
+    boxShadow: "0 10px 25px rgba(0,0,0,0.2)"
   },
   input: {
     padding: "10px",
     borderRadius: "8px",
-    border: "none"
-  },
-  buttonRow: {
-    display: "flex",
-    justifyContent: "center",
-    gap: "15px",
-    marginBottom: "25px"
+    border: "1px solid #ccc"
   },
   primaryBtn: {
-    padding: "10px 20px",
-    borderRadius: "8px",
-    background: "#00ffc6",
+    padding: "10px",
+    background: "#2563eb",
+    color: "#fff",
     border: "none",
-    cursor: "pointer",
-    fontWeight: "bold"
+    borderRadius: "6px"
   },
-  secondaryBtn: {
-    padding: "10px 20px",
-    borderRadius: "8px",
-    background: "#ffd166",
-    border: "none",
-    cursor: "pointer",
-    fontWeight: "bold"
+  dashContainer: {
+    maxWidth: "1100px",
+    margin: "auto",
+    padding: "40px"
   },
-  dashboard: {
-    display: "flex",
-    justifyContent: "space-around",
+  statsGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))",
+    gap: "20px",
     marginBottom: "30px"
   },
-  stat: {
-    background: "rgba(255,255,255,0.1)",
-    padding: "15px",
-    borderRadius: "10px",
-    textAlign: "center"
-  },
-  grid: {
+  statCard: {
+  background: "#fff",
+  padding: "25px",
+  borderRadius: "12px",
+  textAlign: "center",
+  boxShadow: "0 6px 15px rgba(0,0,0,0.1)"
+},
+  taskGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+    gridTemplateColumns: "repeat(auto-fit,minmax(250px,1fr))",
     gap: "20px"
   },
-  card: {
-    background: "rgba(255,255,255,0.1)",
+  taskCard: {
+    background: "#fff",
     padding: "20px",
-    borderRadius: "15px"
-  },
-  badge: {
-    padding: "5px 10px",
-    borderRadius: "20px",
-    color: "#000",
-    fontWeight: "bold",
-    fontSize: "12px"
-  },
-  smallBtn: {
-    marginTop: "10px",
-    padding: "8px",
-    borderRadius: "6px",
-    border: "none",
-    background: "#00ff9d",
-    cursor: "pointer",
-    fontWeight: "bold"
+    borderRadius: "12px",
+    boxShadow: "0 6px 15px rgba(0,0,0,0.1)"
   }
 };
-
-export default App;
