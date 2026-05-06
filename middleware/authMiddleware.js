@@ -1,19 +1,22 @@
 const jwt = require("jsonwebtoken");
 
-const authMiddleware = (req, res, next) => {
-  const token = req.headers.authorization;
+module.exports = function (req, res, next) {
+  const authHeader = req.header("Authorization");
 
-  if (!token) {
+  if (!authHeader) {
     return res.status(401).json({ message: "No token, access denied" });
   }
 
   try {
+    const token = authHeader.split(" ")[1];
+
+    // ✅ FIX: hardcode secret (must match login)
     const decoded = jwt.verify(token, "secret123");
-    req.user = decoded; // contains id + role
+
+    req.user = decoded;
     next();
-  } catch (error) {
+  } catch (err) {
+    console.log("JWT ERROR:", err.message);
     res.status(401).json({ message: "Invalid token" });
   }
 };
-
-module.exports = authMiddleware;
