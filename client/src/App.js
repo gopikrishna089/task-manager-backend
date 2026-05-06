@@ -151,7 +151,7 @@ function Dashboard() {
 
   const [tasks, setTasks] = useState([]);
   const [dashboard, setDashboard] = useState(null);
-  const [view, setView] = useState("dashboard"); // 🔥 important
+  const [view, setView] = useState("dashboard");
 
   const fetchData = async () => {
     const [tasksRes, dashRes] = await Promise.all([
@@ -166,41 +166,37 @@ function Dashboard() {
     setTasks(tasksRes.data);
     setDashboard(dashRes.data);
   };
-  function Stat({ label, value }) {
-  return (
-    <div style={styles.statCard}>
-      <h2>{value}</h2>
-      <p>{label}</p>
-    </div>
-  );
-}
 
+  // ✅ FIXED HERE
   useEffect(() => {
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // ✅ Better to keep outside, but this still works
+  function Stat({ label, value }) {
+    return (
+      <div style={styles.statCard}>
+        <h2>{value}</h2>
+        <p>{label}</p>
+      </div>
+    );
+  }
 
   return (
     <div style={styles.dashContainer}>
       <h1>Welcome, {name} 👋</h1>
 
-      {/* 🔥 SWITCH BUTTONS */}
       <div style={{ marginBottom: "20px" }}>
-        <button
-          style={styles.primaryBtn}
-          onClick={() => setView("dashboard")}
-        >
+        <button style={styles.primaryBtn} onClick={() => setView("dashboard")}>
           📊 Dashboard
         </button>
 
-        <button
-          style={styles.secondaryBtn}
-          onClick={() => setView("tasks")}
-        >
+        <button style={styles.secondaryBtn} onClick={() => setView("tasks")}>
           📋 Tasks
         </button>
       </div>
 
-      {/* 🔥 DASHBOARD VIEW */}
       {view === "dashboard" && dashboard && (
         <div style={styles.statsGrid}>
           <Stat label="Total" value={dashboard.total} />
@@ -210,16 +206,13 @@ function Dashboard() {
         </div>
       )}
 
-      {/* 🔥 TASKS VIEW */}
       {view === "tasks" && (
         <div style={styles.taskGrid}>
           {tasks.map((t) => (
             <div key={t._id} style={styles.taskCard}>
               <h3>{t.title}</h3>
               <p>{t.description}</p>
-              <span style={statusStyle(t.status)}>
-                {t.status}
-              </span>
+              <span style={statusStyle(t.status)}>{t.status}</span>
             </div>
           ))}
         </div>
