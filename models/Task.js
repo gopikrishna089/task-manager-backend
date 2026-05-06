@@ -5,8 +5,8 @@ const taskSchema = new mongoose.Schema({
   description: String,
   status: {
     type: String,
-    enum: ["todo", "in-progress", "done"],
-    default: "todo"
+    enum: ["pending", "in-progress", "completed"],
+    default: "pending"
   },
   assignedTo: {
     type: mongoose.Schema.Types.ObjectId,
@@ -17,6 +17,6 @@ const taskSchema = new mongoose.Schema({
     ref: "Project"
   },
   dueDate: Date
-});
+}, { timestamps: true });
 
 module.exports = mongoose.model("Task", taskSchema);

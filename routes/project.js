@@ -1,37 +1,32 @@
 const express = require("express");
-const router = express.Router();
+const mongoose = require("mongoose");
+require("dotenv").config();
 
-const Project = require("../models/Project");
-const authMiddleware = require("../middleware/authMiddleware");
-const roleMiddleware = require("../middleware/roleMiddleware");
+const app = express();
+app.use(express.json());
 
-// Create Project (Admin only)
-router.post("/", authMiddleware, roleMiddleware("admin"), async (req, res) => {
-  const { name, description, members } = req.body;
+// ✅ IMPORT ROUTES
+const authRoutes = require("./routes/auth");
+const projectRoutes = require("./routes/project");
+const taskRoutes = require("./routes/task");
 
-  try {
-    const project = new Project({
-      name,
-      description,
-      members,
-      createdBy: req.user.id
-    });
+// ✅ USE ROUTES
+app.use("/auth", authRoutes);
+app.use("/projects", projectRoutes);
+app.use("/tasks", taskRoutes);
 
-    await project.save();
-
-    res.json({ message: "Project created", project });
-  } catch (error) {
-    res.status(500).json({ message: "Error creating project" });
-  }
+// ✅ TEST ROUTE
+app.get("/", (req, res) => {
+  res.send("API running");
 });
 
-// Get Projects
-router.get("/", authMiddleware, async (req, res) => {
-  const projects = await Project.find({
-    members: req.user.id
-  });
+// ✅ DB CONNECT
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB connected"))
+  .catch(err => console.log(err));
 
-  res.json(projects);
+// ✅ PORT (IMPORTANT for Railway)
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
-
-module.exports = router;
