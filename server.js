@@ -1,16 +1,15 @@
-
 const express = require("express");
 const mongoose = require("mongoose");
 const authMiddleware = require("./middleware/authMiddleware");
 require("dotenv").config();
-const app = express();
 
+const app = express();
 app.use(express.json());
 
 // DB connection
 mongoose.connect(process.env.MONGO_URI)
-.then(() => console.log("DB connected"))
-.catch(err => console.log(err));
+  .then(() => console.log("DB connected"))
+  .catch(err => console.log(err));
 
 // Routes
 const authRoutes = require("./routes/auth");
@@ -33,8 +32,8 @@ app.get("/api/protected", authMiddleware, (req, res) => {
   });
 });
 
-
-const PORT = process.env.PORT;
+// PORT FIX
+const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log("Server running on port " + PORT);
