@@ -1,32 +1,80 @@
 const express = require("express");
-const mongoose = require("mongoose");
+const router = express.Router();
+
+const Project = require("../models/Project");
+const authMiddleware = require("../middleware/authMiddleware");
+const roleMiddleware = require("../middleware/roleMiddleware");
 
 
-const app = express();
-app.use(express.json());
+// ✅ Create Project (Admin only)
+router.post("/", authMiddleware, roleMiddleware("admin"), async (req, res) => {
+  const { name, description, members } = req.body;
 
-// ✅ IMPORT ROUTES
-const authRoutes = require("./routes/auth");
-const projectRoutes = require("./routes/project");
-const taskRoutes = require("./routes/task");
+  try {
+    const project = new Project({
+      name,
+      description,
+      members: members || [],
+      createdBy: req.user.id
+    });
 
-// ✅ USE ROUTES
-app.use("/auth", authRoutes);
-app.use("/projects", projectRoutes);
-app.use("/tasks", taskRoutes);
+    await project.save();
 
-// ✅ TEST ROUTE
-app.get("/", (req, res) => {
-  res.send("API running");
+    res.json({ message: "Project created", project });
+  } catch (error) {
+    res.status(500).json({ message: "Error creating project" });
+  }
 });
 
-// ✅ DB CONNECT
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB connected"))
-  .catch(err => console.log(err));
 
-// ✅ PORT (IMPORTANT for Railway)
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+// ✅ Get Projects (member + creator)
+router.get("/", authMiddleware, async (req, res) => {
+  try {
+    const projects = await Project.find({
+      $or: [
+        { members: req.user.id },
+        { createdBy: req.user.id }
+      ]
+    }).populate("members", "name email");
+
+    res.json(projects);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching projects" });
+  }
 });
+
+
+// ✅ Add Member to Project
+router.post("/:id/add-member", authMiddleware, async (req, res) => {
+  const { userId } = req.body;
+
+  try {
+    const project = await Project.findById(req.params.id);
+
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
+    }
+
+    // only admin or creator can add members
+    if (
+      req.user.role !== "admin" &&
+      project.createdBy.toString() !== req.user.id
+    ) {
+      return res.status(403).json({ message: "Not allowed" });
+    }
+
+    // avoid duplicates
+    if (!project.members.includes(userId)) {
+      project.members.push(userId);
+    }
+
+    await project.save();
+
+    res.json(project);
+  } catch (error) {
+    res.status(500).json({ message: "Error adding member" });
+  }
+});
+
+
+module.exports = router;
